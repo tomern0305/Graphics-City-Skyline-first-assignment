@@ -259,7 +259,7 @@ void DrawAxis()
 
 void DrawFireworks()
 {
-	int i;
+	int i, j;
 
 	glColor3d(1, 1, 1); 
 
@@ -271,6 +271,22 @@ void DrawFireworks()
 		glEnd();
 
 		DrawTail(fireworks[i]);
+
+		if (fireworks[i].expload)
+		{
+			for (j = 0; j < NUM_PARTICALS; j++)
+			{
+				if (fireworks[i].explotion[j].life > 0)
+				{
+					double intensity = fireworks[i].explotion[j].life / (double)LIFE_LENGHT;
+					glColor3d(intensity, intensity * (i / (double)NUM_FIREWORKS), i / (double)NUM_FIREWORKS);
+					glPointSize(2);
+					glBegin(GL_POINTS);
+					glVertex2d(fireworks[i].explotion[j].x, fireworks[i].explotion[j].y);
+					glEnd();
+				}
+			}
+		}
 	}
 }
 
@@ -281,10 +297,8 @@ void display()
 	DrawSky();
 	DrawFireworks();
 
-
-	//DrawBackBuildings();
-	//DrawFrontBuildings();
-
+	DrawBackBuildings();
+	DrawFrontBuildings();
 
 	DrawAxis();
 	glutSwapBuffers(); // show all
@@ -293,7 +307,7 @@ void display()
 void idle() 
 {
 	int index;
-	int i,j;
+	int i, j, allDead;
 
 	// sparking	for the sky
 	if (rand() % 10 == 0)
@@ -303,10 +317,10 @@ void idle()
 	}
 	
 	//firework going up
-	for (i = 0;i < NUM_FIREWORKS;i++)
+	for (i = 0; i < NUM_FIREWORKS; i++)
 	{
 		// update the tail if the star is still within the window
-		for (j = TAIL_LENGTH - 1;j > 0;j--)
+		for (j = TAIL_LENGTH - 1; j > 0; j--)
 		{
 			fireworks[i].tail[j] = fireworks[i].tail[j - 1];
 		}
@@ -316,28 +330,54 @@ void idle()
 
 		if (fireworks[i].position.y >= 0.8 && fireworks[i].expload == 0)
 		{
-			//here how do i add exploding the firework?
+			// setting the ground for the explotion
+			fireworks[i].expload = 1;
+			
+			for (j = 0; j < NUM_PARTICALS; j++)
+			{
+				fireworks[i].explotion[j].x = fireworks[i].position.x; //settings the location of the explotion
+				fireworks[i].explotion[j].y = fireworks[i].position.y;
+				fireworks[i].explotion[j].life = LIFE_LENGHT;
+			}
 		}
 		
-		
-		// renew the star position after it leaves the window
-		if (fireworks[i].position.y >= 0.8 && fireworks[i].expload)
+		//the explotion
+		if (fireworks[i].expload)
+		{
+			for (j = 0; j < NUM_PARTICALS; j++)
+			{
+				if (fireworks[i].explotion[j].life > 0)
+				{
+					fireworks[i].explotion[j].x += ((rand() % 200) - 100) / 10000.0; //range: [-0.02,0.02]
+					fireworks[i].explotion[j].y += ((rand() % 200) - 100) / 10000.0;
+
+					fireworks[i].explotion[j].life--;
+				}
+			}
+		}
+
+		allDead = 1;
+		for (j = 0; j < NUM_PARTICALS; j++)
+		{
+			if (fireworks[i].explotion[j].life > 0)
+			{
+				allDead = 0;
+				break;
+			}
+		}
+
+		if (fireworks[i].expload && allDead)
 		{
 			fireworks[i].position.x = -1 + 2 * ((rand() % 1000) / 1000.0);
 			fireworks[i].position.y = -0.2;
-			//fireworks[i].size = 7;
-			 //update the tail
-			for (j = 0;j < TAIL_LENGTH;j++)
-				fireworks[i].tail[j] = fireworks[i].position;
+			fireworks[i].expload = 0;
 
+			for (j = 0; j < TAIL_LENGTH; j++)
+				fireworks[i].tail[j] = fireworks[i].position;
 		}
 	}
-
-
-
 	glutPostRedisplay(); // indirect call to display
 }
-
 
 void main(int argc, char* argv[]) 
 {
@@ -353,18 +393,3 @@ void main(int argc, char* argv[])
 
 	glutMainLoop();
 }
-
-
-
-// x,y axies
-	/*glColor3d(1, 1, 1);
-	glBegin(GL_LINES);
-	glVertex2d(-1, 0);
-	glVertex2d(1, 0);
-
-	glVertex2d(0, 1);
-
-	glVertex2d(0, -1);
-	*/
-	// draw graph function
-	//glEnd();
